@@ -4,8 +4,8 @@
 *.pyc
 *.pyo
 env/
-# venv/
-# .venv/
+venv/
+.venv/
 env*
 dist/
 build/

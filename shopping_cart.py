@@ -97,22 +97,37 @@ shopping_cart_fields = {
 
 
 
-
-class CartsList(Resource):
+class HandleShoppingCart(Resource):
     @marshal_with(shopping_cart_fields)
-    def get(self):
-        shopping_carts_objs = ShoppingCart.query.all()
-        return shopping_carts_objs
+    def get(self, user_id: int):
+        # Return the entire shopping cart of a specific user
+        pass
+    
+    def delete(self, user_id: int):
+        # Delete the entire shopping cart of a specific user
+        pass
 
-
-class GetCartByUserID(Resource):
+class HandleProduct(Resource):
     @marshal_with(shopping_cart_fields)
-    def get(self):
+    def post(self, user_id: int, product_id: int):
+        # Add a specific product to a specific user's shopping cart
+        pass
+
+    @marshal_with(shopping_cart_fields)
+    def delete(self, user_id: int, product_id: int):
+        # Delete a specific product from a specific user's shopping cart
+        pass
+
+    @marshal_with(shopping_cart_fields)
+    def put(self, user_id: int, product_id: int):
+        # Change the quantity of a specific product from a specific user's shopping cart
         pass
 
 
 
-api.add_resource(CartsList, '/carts_list')
+api.add_resource(HandleShoppingCart, '/cart/<int:user_id>')
+api.add_resource(HandleProduct,      '/cart/<int:user_id>/product/<int:product_id>')
+
 if __name__ == '__main__':
     # db.destroy_all()
     db.create_all()
