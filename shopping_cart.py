@@ -2,7 +2,7 @@ import datetime
 import time
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Api, Resource, fields, marshal_with
-from flask import Flask, Response, make_response
+from flask import Flask, Response, make_response, request
 import requests
 import random
 
@@ -15,6 +15,15 @@ app.app_context().push()
 db = SQLAlchemy(app)
 
 
+#
+# Exceptions
+#
+class ModelNotFound(Exception):
+    "Raised when the modal isn't found in the database or isn't found in the external API"
+    pass
+
+
+
 # API URLs
 get_single_user_url    = 'https://fakestoreapi.com/users/'
 get_single_product_url = 'https://fakestoreapi.com/products/'
@@ -23,12 +32,20 @@ get_single_product_url = 'https://fakestoreapi.com/products/'
 def get_single_product(product_id):
     url = get_single_product_url + str(product_id)
     r   = requests.get(url)
+
+    if r.content == b'' or r.content == 'null':
+        raise ModelNotFound(f"Product #{product_id} does not exist!")
+    
     return r.json()
+
 
 
 def get_single_user(user_id):
     url = get_single_user_url + str(user_id)
     r   = requests.get(url)
+
+    if r.content == b'' or r.content == 'null':
+        raise ModelNotFound(f"User #{user_id} does not exist!")
 
     return r.json()
 
@@ -67,41 +84,101 @@ class HandleShoppingCart(Resource):
     
     @marshal_with(shopping_cart_fields)
     def get(self, user_id: int):
-        # Return the entire shopping cart of a specific user
+        """
+        Return the entire shopping cart of a specific user
+        """
         data = ShoppingCart.query.filter_by(user_id=user_id).all()
         return data
 
 
     def delete(self, user_id: int):
-        # Delete the entire shopping cart of a specific user
+        """
+         Delete the entire shopping cart of a specific user
+        """
         shopping_cart_to_delete = ShoppingCart.query.filter_by(user_id=user_id)
 
         if shopping_cart_to_delete.first() == None:
-            return make_response(f"Shopping cart of user {user_id} does not exist!", 404)
+            return make_response(f"Shopping cart of user #{user_id} does not exist!", 404)
         else:
             print(shopping_cart_to_delete)
             shopping_cart_to_delete.delete()
             db.session.commit()
 
-        return make_response(f"Shopping cart of user {user_id} has been deleted!", 204)
+        return make_response(f"Shopping cart of user #{user_id} has been deleted!", 204)
 
 
 
 class HandleProduct(Resource):
-    @marshal_with(shopping_cart_fields)
     def post(self, user_id: int, product_id: int):
-        # Add a specific product to a specific user's shopping cart
-        pass
+        """
+         Add a specific product to a specific user's shopping cart
+        """
+        #
+        # Validations
+        # Check if the product, user exist, and check if the product is already in the user's shopping cart
+        #
+        try:
+            product = get_single_product(product_id)        
+        except ModelNotFound:
+            return make_response(f"Product #{product_id} does not exist!", 404)
 
-    @marshal_with(shopping_cart_fields)
+        try:
+            user = get_single_user(user_id)
+        except ModelNotFound:
+            return make_response(f"User #{user_id} does not exist!", 404)
+
+
+        # Check if the product is already in the user's shopping cart
+        if db.session.query(ShoppingCart).filter_by(product_id=product_id, user_id=user_id).first() != None:
+            return make_response(f"Product #{product_id} is already in user #{user_id}'s shopping cart! Try changing the quantity instead.", 400)
+
+
+        # Add the product to the user's shopping cart
+        new_product = ShoppingCart(
+            user_id       = user_id,
+            username      = user['username'],
+            product_id    = product_id,
+            product_title = product['title'],
+            product_desc  = product['description'],
+            product_price = product['price'],
+            quantity      = 1
+        )
+
+        db.session.add(new_product)
+        db.session.commit()
+
+        return make_response(f"Product #{product_id} has been added to user #{user_id}'s shopping cart!", 201)
+
+
     def delete(self, user_id: int, product_id: int):
-        # Delete a specific product from a specific user's shopping cart
-        pass
+        """
+         Delete a specific product from a specific user's shopping cart\
+        """
+        product_to_delete = ShoppingCart.query.filter_by(user_id=user_id, product_id=product_id).first()
 
-    @marshal_with(shopping_cart_fields)
+        if product_to_delete == None:
+            return make_response(f"Product #{product_id} does not exist in user #{user_id}'s shopping cart!", 404)
+        
+        db.session.delete(product_to_delete)
+        db.session.commit()
+
+        return make_response(f"Product #{product_id} has been deleted from user #{user_id}'s shopping cart!", 204)
+    
+
     def put(self, user_id: int, product_id: int):
-        # Change the quantity of a specific product from a specific user's shopping cart
-        pass
+        """
+         Change the quantity of a specific product from a specific user's shopping cart
+        """
+        product_to_update = ShoppingCart.query.filter_by(user_id=user_id, product_id=product_id).first()
+
+        if product_to_update == None:
+            return make_response(f"Product #{product_id} does not exist in user #{user_id}'s shopping cart!", 404)
+        
+        product_to_update.quantity = request.json['quantity']
+        db.session.commit()
+
+        return make_response(f"Product #{product_id} has been updated in user #{user_id}'s shopping cart!", 200)
+
 
 
 
