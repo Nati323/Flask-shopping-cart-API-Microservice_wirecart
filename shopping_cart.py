@@ -2,11 +2,9 @@ import datetime
 import time
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Api, Resource, fields, marshal_with
-from flask import Flask, redirect, url_for
+from flask import Flask, Response, make_response
 import requests
 import random
-
-
 
 app = Flask(__name__)
 api = Api(app)
@@ -34,7 +32,6 @@ def get_single_user(user_id):
 
     return r.json()
 
-
 class ShoppingCart(db.Model):
     id = db.Column('id', db.Integer, primary_key=True, auto_increment=True)
     user_id       = db.Column('user_id', db.Integer)
@@ -47,7 +44,6 @@ class ShoppingCart(db.Model):
 
     quantity      = db.Column('quantity', db.Integer)
     auto_date     = db.Column('auto_date', db.DateTime, default=datetime.datetime.now)
-
 
 shopping_cart_fields = {
     'id': fields.Integer,
@@ -64,6 +60,64 @@ shopping_cart_fields = {
     'quantity': fields.Integer,
     'auto_date': fields.DateTime,
 }
+
+
+
+class HandleShoppingCart(Resource):
+    
+    @marshal_with(shopping_cart_fields)
+    def get(self, user_id: int):
+        # Return the entire shopping cart of a specific user
+        data = ShoppingCart.query.filter_by(user_id=user_id).all()
+        return data
+
+
+    def delete(self, user_id: int):
+        # Delete the entire shopping cart of a specific user
+        shopping_cart_to_delete = ShoppingCart.query.filter_by(user_id=user_id)
+
+        if shopping_cart_to_delete.first() == None:
+            return make_response(f"Shopping cart of user {user_id} does not exist!", 404)
+        else:
+            print(shopping_cart_to_delete)
+            shopping_cart_to_delete.delete()
+            db.session.commit()
+
+        return make_response(f"Shopping cart of user {user_id} has been deleted!", 204)
+
+
+
+class HandleProduct(Resource):
+    @marshal_with(shopping_cart_fields)
+    def post(self, user_id: int, product_id: int):
+        # Add a specific product to a specific user's shopping cart
+        pass
+
+    @marshal_with(shopping_cart_fields)
+    def delete(self, user_id: int, product_id: int):
+        # Delete a specific product from a specific user's shopping cart
+        pass
+
+    @marshal_with(shopping_cart_fields)
+    def put(self, user_id: int, product_id: int):
+        # Change the quantity of a specific product from a specific user's shopping cart
+        pass
+
+
+
+
+api.add_resource(HandleShoppingCart, '/cart/<int:user_id>')
+api.add_resource(HandleProduct,      '/cart/<int:user_id>/product/<int:product_id>')
+
+
+if __name__ == '__main__':
+    # db.destroy_all()
+    db.create_all()
+    app.run(debug=True)
+
+
+
+
 
 #
 # Generate fake data
@@ -94,41 +148,3 @@ shopping_cart_fields = {
 #         print("Cart created", new_cart)
 
 #     return 'Done!'
-
-
-
-class HandleShoppingCart(Resource):
-    @marshal_with(shopping_cart_fields)
-    def get(self, user_id: int):
-        # Return the entire shopping cart of a specific user
-        pass
-    
-    def delete(self, user_id: int):
-        # Delete the entire shopping cart of a specific user
-        pass
-
-class HandleProduct(Resource):
-    @marshal_with(shopping_cart_fields)
-    def post(self, user_id: int, product_id: int):
-        # Add a specific product to a specific user's shopping cart
-        pass
-
-    @marshal_with(shopping_cart_fields)
-    def delete(self, user_id: int, product_id: int):
-        # Delete a specific product from a specific user's shopping cart
-        pass
-
-    @marshal_with(shopping_cart_fields)
-    def put(self, user_id: int, product_id: int):
-        # Change the quantity of a specific product from a specific user's shopping cart
-        pass
-
-
-
-api.add_resource(HandleShoppingCart, '/cart/<int:user_id>')
-api.add_resource(HandleProduct,      '/cart/<int:user_id>/product/<int:product_id>')
-
-if __name__ == '__main__':
-    # db.destroy_all()
-    db.create_all()
-    app.run(debug=True)
