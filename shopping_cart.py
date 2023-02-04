@@ -1,10 +1,11 @@
 import datetime
-import time
 from flask_sqlalchemy import SQLAlchemy
-from flask_restful import Api, Resource, fields, marshal_with
-from flask import Flask, Response, make_response, request
+from flask_restful import Api, Resource, fields
+from flask import Flask, make_response, request
 import requests
 import random
+from repositories import *
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -81,29 +82,33 @@ shopping_cart_fields = {
 
 
 class HandleShoppingCart(Resource):
-    
-    @marshal_with(shopping_cart_fields)
     def get(self, user_id: int):
         """
         Return the entire shopping cart of a specific user
         """
-        data = ShoppingCart.query.filter_by(user_id=user_id).all()
-        return data
+        try:
+            response = ShoppingCartRepository(db.session, user_id).get()
+        except UserDoesNotHaveAShoppingCart:
+            return make_response(f"User #{user_id} does not have a shopping cart!", 404)
+        except ModelNotFound:
+            return make_response(f"User #{user_id} does not exist!", 404)
+        
+        return make_response(response, 200)
 
 
     def delete(self, user_id: int):
         """
          Delete the entire shopping cart of a specific user
         """
-        shopping_cart_to_delete = ShoppingCart.query.filter_by(user_id=user_id)
 
-        if shopping_cart_to_delete.first() == None:
-            return make_response(f"Shopping cart of user #{user_id} does not exist!", 404)
-        else:
-            print(shopping_cart_to_delete)
-            shopping_cart_to_delete.delete()
-            db.session.commit()
+        try:
+            ShoppingCartRepository(db.session, user_id).delete()
+        except UserDoesNotHaveAShoppingCart:
+            return make_response(f"User #{user_id} does not have a shopping cart!", 404)
+        except ModelNotFound:
+            return make_response(f"User #{user_id} does not exist!", 404)
 
+    
         return make_response(f"Shopping cart of user #{user_id} has been deleted!", 204)
 
 
@@ -114,7 +119,6 @@ class HandleProduct(Resource):
          Add a specific product to a specific user's shopping cart
         """
         #
-        # Validations
         # Check if the product, user exist, and check if the product is already in the user's shopping cart
         #
         try:
@@ -152,8 +156,22 @@ class HandleProduct(Resource):
 
     def delete(self, user_id: int, product_id: int):
         """
-         Delete a specific product from a specific user's shopping cart\
+         Delete a specific product from a specific user's shopping cart
         """
+        #
+        # Make sure the user & product exists before continuing
+        #
+        try:
+            get_single_user(user_id)
+        except ModelNotFound:
+            return make_response(f"User #{user_id} does not exist!", 404)
+
+        try:
+            get_single_product(product_id)
+        except ModelNotFound:
+            return make_response(f"Product #{product_id} does not exist!", 404)
+
+
         product_to_delete = ShoppingCart.query.filter_by(user_id=user_id, product_id=product_id).first()
 
         if product_to_delete == None:
@@ -169,6 +187,20 @@ class HandleProduct(Resource):
         """
          Change the quantity of a specific product from a specific user's shopping cart
         """
+        #
+        # Make sure the user & product exists before continuing
+        #
+        try:
+            get_single_user(user_id)
+        except ModelNotFound:
+            return make_response(f"User #{user_id} does not exist!", 404)
+
+        try:
+            get_single_product(product_id)
+        except ModelNotFound:
+            return make_response(f"Product #{product_id} does not exist!", 404)
+
+
         product_to_update = ShoppingCart.query.filter_by(user_id=user_id, product_id=product_id).first()
 
         if product_to_update == None:
@@ -189,7 +221,7 @@ api.add_resource(HandleProduct,      '/cart/<int:user_id>/product/<int:product_i
 
 if __name__ == '__main__':
     # db.destroy_all()
-    db.create_all()
+    # db.create_all()
     app.run(debug=True)
 
 
