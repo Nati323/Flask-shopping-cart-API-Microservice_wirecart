@@ -1,4 +1,3 @@
-from flask import make_response
 from flask_restful import marshal_with
 
 from shopping_cart import (ModelNotFoundException, ShoppingCart, get_single_product,
@@ -41,7 +40,7 @@ class ShoppingCartRepository():
         except ModelNotFoundException:
             raise ModelNotFoundException(f"User #{user_id} does not exist!", 404)
 
-        # Make sure the user got at least 1 shopping cart
+        # Make sure the user got at least 1 shopping cart instance
         if db_session.query(ShoppingCart).filter_by(user_id=user_id).first() == None:
             raise UserDoesNotHaveAShoppingCartException(f"User #{user_id} does not have any shopping carts!")
 
@@ -139,9 +138,9 @@ class ProductRepository():
 
          @throws UserDoesNotHaveAShoppingCart
         """
-        # Make sure the user got at least 1 shopping cart
+        # Make sure the user got at least 1 shopping cart instance
         if self._session.query(ShoppingCart).filter_by(user_id=self._user_id).first() == None:
-            raise UserDoesNotHaveAShoppingCartException(f"User #{self._user_id} does not have any shopping carts!")
+            raise UserDoesNotHaveAShoppingCartException(f"User #{self._user_id} does not have any shopping cart instances!")
 
         product_to_delete = self._session.query(ShoppingCart).filter_by(user_id=self._user_id, product_id=self._product_id).first()
 
@@ -160,9 +159,9 @@ class ProductRepository():
 
          @throws UserDoesNotHaveAShoppingCart
         """
-        # Make sure the user got at least 1 shopping cart
+        # Make sure the user got at least 1 shopping cart instance
         if self._session.query(ShoppingCart).filter_by(user_id=self._user_id).first() == None:
-            raise UserDoesNotHaveAShoppingCartException(f"User #{self._user_id} does not have any shopping carts!")
+            raise UserDoesNotHaveAShoppingCartException(f"User #{self._user_id} does not have any shopping cart instances!")
 
         # Validate quantity
         if quantity < 1:
