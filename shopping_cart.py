@@ -15,7 +15,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///shopping_cart_db.sqlite3' # d
 app.app_context().push()
 db = SQLAlchemy(app)
 
-class ModelNotFound(Exception):
+class ModelNotFoundException(Exception):
     """
      Raised when the modal isn't found in the database or isn't found in the external API
     """
@@ -31,7 +31,7 @@ def get_single_product(product_id):
     r   = requests.get(url)
 
     if r.content == b'' or r.content == 'null':
-        raise ModelNotFound(f"Product #{product_id} does not exist!")
+        raise ModelNotFoundException(f"Product #{product_id} does not exist!")
     
     return r.json()
 
@@ -42,7 +42,7 @@ def get_single_user(user_id):
     r   = requests.get(url)
 
     if r.content == b'' or r.content == 'null':
-        raise ModelNotFound(f"User #{user_id} does not exist!")
+        raise ModelNotFoundException(f"User #{user_id} does not exist!")
 
     return r.json()
 
@@ -86,10 +86,10 @@ class HandleShoppingCart(Resource):
         try:
             response = ShoppingCartRepository(db.session, user_id).get()
 
-        except UserDoesNotHaveAShoppingCart as e:
+        except UserDoesNotHaveAShoppingCartException as e:
             return make_response(str(e), 404)
 
-        except ModelNotFound as e:
+        except ModelNotFoundException as e:
             return make_response(str(e), 404)
 
         return make_response(response, 200)
@@ -102,9 +102,9 @@ class HandleShoppingCart(Resource):
 
         try:
             ShoppingCartRepository(db.session, user_id).delete()
-        except UserDoesNotHaveAShoppingCart as e:
+        except UserDoesNotHaveAShoppingCartException as e:
             return make_response(str(e), 404)
-        except ModelNotFound as e:
+        except ModelNotFoundException as e:
             return make_response(str(e), 404)
 
     
@@ -119,13 +119,13 @@ class HandleProduct(Resource):
         """
         try:
             ProductRepository(db.session, user_id, product_id).add()
-        except ModelNotFound as e:
+        except ModelNotFoundException as e:
             return make_response(str(e), 404)
 
-        except ProductAlreadyInShoppingCart as e:
+        except ProductAlreadyInShoppingCartException as e:
             return make_response(str(e), 400)
 
-        except UserDoesNotHaveAShoppingCart as e:
+        except UserDoesNotHaveAShoppingCartException as e:
             return make_response(str(e), 400)
 
 
@@ -139,13 +139,13 @@ class HandleProduct(Resource):
         """
         try:
             ProductRepository(db.session, user_id, product_id).delete()
-        except ModelNotFound as e:
+        except ModelNotFoundException as e:
             return make_response(str(e), 404)
 
-        except ProductAlreadyInShoppingCart as e:
+        except ProductAlreadyInShoppingCartException as e:
             return make_response(str(e), 400)
 
-        except UserDoesNotHaveAShoppingCart as e:
+        except UserDoesNotHaveAShoppingCartException as e:
             return make_response(str(e), 400)
 
 
@@ -159,16 +159,16 @@ class HandleProduct(Resource):
         """
         try:
             ProductRepository(db.session, user_id, product_id).change_quantity(request.json['quantity'])
-        except ModelNotFound as e:
+        except ModelNotFoundException as e:
             return make_response(str(e), 404)
 
-        except ProductAlreadyInShoppingCart as e:
+        except ProductAlreadyInShoppingCartException as e:
             return make_response(str(e), 400)
 
-        except UserDoesNotHaveAShoppingCart as e:
+        except UserDoesNotHaveAShoppingCartException as e:
             return make_response(str(e), 400)
 
-        except InvalidQuantity as e:
+        except InvalidQuantityException as e:
             return make_response(str(e), 400)
 
 

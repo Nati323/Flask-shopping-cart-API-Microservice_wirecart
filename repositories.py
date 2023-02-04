@@ -1,26 +1,26 @@
 from flask import make_response
 from flask_restful import marshal_with
 
-from shopping_cart import (ModelNotFound, ShoppingCart, get_single_product,
+from shopping_cart import (ModelNotFoundException, ShoppingCart, get_single_product,
                            get_single_user, shopping_cart_fields)
 
 #
 # Exceptions
 #
 
-class UserDoesNotHaveAShoppingCart(Exception):
+class UserDoesNotHaveAShoppingCartException(Exception):
     """
      Raised when the user doesn't have a shopping cart
     """
     pass
 
-class ProductAlreadyInShoppingCart(Exception):
+class ProductAlreadyInShoppingCartException(Exception):
     """
      Raised when the user already have the item in the shopping cart but tries to add it again
     """
     pass
 
-class InvalidQuantity(Exception):
+class InvalidQuantityException(Exception):
     """
      Raised when the user tries to enter an invalid quantity
     """
@@ -38,12 +38,12 @@ class ShoppingCartRepository():
         # Make sure the user exists before continuing
         try:
             get_single_user(user_id)
-        except ModelNotFound:
-            raise ModelNotFound(f"User #{user_id} does not exist!", 404)
+        except ModelNotFoundException:
+            raise ModelNotFoundException(f"User #{user_id} does not exist!", 404)
 
         # Make sure the user got at least 1 shopping cart
         if db_session.query(ShoppingCart).filter_by(user_id=user_id).first() == None:
-            raise UserDoesNotHaveAShoppingCart(f"User #{user_id} does not have any shopping carts!")
+            raise UserDoesNotHaveAShoppingCartException(f"User #{user_id} does not have any shopping carts!")
 
         # Make the shopping cart
         self._session       = db_session
@@ -87,14 +87,14 @@ class ProductRepository():
         # Make sure the user exists before continuing
         try:
             user = get_single_user(user_id)
-        except ModelNotFound:
-            raise ModelNotFound(f"User #{user_id} does not exist!")
+        except ModelNotFoundException:
+            raise ModelNotFoundException(f"User #{user_id} does not exist!")
 
         # Make sure the product exists before continuing
         try:
             product = get_single_product(product_id)
-        except ModelNotFound:
-            raise ModelNotFound(f"Product #{product_id} does not exist!")
+        except ModelNotFoundException:
+            raise ModelNotFoundException(f"Product #{product_id} does not exist!")
 
         # Make the shopping cart
         self._session       = db_session
@@ -115,7 +115,7 @@ class ProductRepository():
          @throws ProductAlreadyInShoppingCart
         """
         if self._session.query(ShoppingCart).filter_by(product_id=self._product_id, user_id=self._user_id).first() != None:
-            raise ProductAlreadyInShoppingCart(f"Product #{self._product_id} is already in user #{self._user_id}'s shopping cart!")
+            raise ProductAlreadyInShoppingCartException(f"Product #{self._product_id} is already in user #{self._user_id}'s shopping cart!")
 
         new_product = ShoppingCart(
             user_id       = self._user_id,
@@ -141,12 +141,12 @@ class ProductRepository():
         """
         # Make sure the user got at least 1 shopping cart
         if self._session.query(ShoppingCart).filter_by(user_id=self._user_id).first() == None:
-            raise UserDoesNotHaveAShoppingCart(f"User #{self._user_id} does not have any shopping carts!")
+            raise UserDoesNotHaveAShoppingCartException(f"User #{self._user_id} does not have any shopping carts!")
 
         product_to_delete = self._session.query(ShoppingCart).filter_by(user_id=self._user_id, product_id=self._product_id).first()
 
         if product_to_delete == None:
-            raise ModelNotFound(f"Product #{self._product_id} does not exist in user #{self._user_id}'s shopping cart!")
+            raise ModelNotFoundException(f"Product #{self._product_id} does not exist in user #{self._user_id}'s shopping cart!")
 
         self._session.delete(product_to_delete)
         self._session.commit()
@@ -162,21 +162,21 @@ class ProductRepository():
         """
         # Make sure the user got at least 1 shopping cart
         if self._session.query(ShoppingCart).filter_by(user_id=self._user_id).first() == None:
-            raise UserDoesNotHaveAShoppingCart(f"User #{self._user_id} does not have any shopping carts!")
+            raise UserDoesNotHaveAShoppingCartException(f"User #{self._user_id} does not have any shopping carts!")
 
         # Validate quantity
         if quantity < 1:
-            raise InvalidQuantity("Quantity must be greater than 0!")
+            raise InvalidQuantityException("Quantity must be greater than 0!")
         elif not isinstance(quantity, int):
-            raise InvalidQuantity("Quantity must be an integer!")
+            raise InvalidQuantityException("Quantity must be an integer!")
         elif quantity > 100:
-            raise InvalidQuantity("Quantity must be less than 100!")
+            raise InvalidQuantityException("Quantity must be less than 100!")
 
         
         product_to_update = self._session.query(ShoppingCart).filter_by(user_id=self._user_id, product_id=self._product_id).first()
 
         if product_to_update == None:
-            raise ModelNotFound(f"Product #{self._product_id} does not exist in user #{self._user_id}'s shopping cart!")
+            raise ModelNotFoundException(f"Product #{self._product_id} does not exist in user #{self._user_id}'s shopping cart!")
 
 
         product_to_update.quantity = quantity
