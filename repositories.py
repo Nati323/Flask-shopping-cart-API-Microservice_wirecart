@@ -56,7 +56,7 @@ class ShoppingCartRepository():
         """
          Show user's shopping cart
         """
-        return self._session.query(ShoppingCart).all()
+        return self._session.query(ShoppingCart).filter_by(user_id=self._user_id).all()
 
 
     def delete(self):
