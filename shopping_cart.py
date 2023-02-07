@@ -4,6 +4,7 @@ from flask_restful import Api, Resource, fields
 from flask import Flask, make_response, request
 import requests
 import random
+from logger import logger_factory
 from repositories import *
 from flask_cors import CORS
 
@@ -11,7 +12,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 api = Api(app)
 CORS(app, resources={r"*": {"origins": "*"}})
-
+logger = logger_factory(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///shopping_cart_db.sqlite3' # db.sqlite3 is the database name, aka. file name
 app.app_context().push()

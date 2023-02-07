@@ -1,4 +1,5 @@
 from flask_restful import marshal_with
+from logger import logger_factory
 
 from shopping_cart import (ModelNotFoundException, ShoppingCart, get_single_product,
                            get_single_user, shopping_cart_fields)
@@ -26,6 +27,7 @@ class InvalidQuantityException(Exception):
     pass
 
 
+logger = logger_factory(__name__)
 
 
 class ShoppingCartRepository():
