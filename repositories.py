@@ -9,19 +9,19 @@ from shopping_cart import (ModelNotFoundException, ShoppingCart, get_single_prod
 
 class UserDoesNotHaveAShoppingCartException(Exception):
     """
-     Raised when the user doesn't have a shopping cart
+     The user doesn't have a shopping cart
     """
     pass
 
 class ProductAlreadyInShoppingCartException(Exception):
     """
-     Raised when the user already have the item in the shopping cart but tries to add it again
+     The user already have the item in the shopping cart but tries to add it again
     """
     pass
 
 class InvalidQuantityException(Exception):
     """
-     Raised when the user tries to enter an invalid quantity
+     The user tries to enter an invalid quantity
     """
     pass
 
